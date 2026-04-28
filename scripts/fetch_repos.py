@@ -127,7 +127,7 @@ def get_readme(owner: str, repo: str) -> str:
 # GitHub Models inference endpoint – OpenAI-compatible, authenticated with GITHUB_TOKEN.
 # Available to all accounts that have GitHub Copilot Free or higher.
 _MODELS_BASE_URL = "https://models.inference.ai.azure.com"
-_ANALYSIS_MODEL = "openai/gpt-4o-mini"
+_ANALYSIS_MODEL = "gpt-4o-mini"
 
 # Rate-limit guard: GitHub Models free tier allows up to 15 req/min.
 _MODELS_CALL_DELAY = 5  # seconds between consecutive Copilot API calls
