@@ -171,6 +171,7 @@ def analyze_repo(readme: str, extra_prompt: str = "") -> Optional[str]:
         if resp.status_code == 200:
             return resp.json()["choices"][0]["message"]["content"].strip()
         print(f"  GitHub Models error: {resp.status_code} - {resp.text}")
+        return None
     except Exception as exc:
         print(f"  GitHub Models error: {exc}")
     return None
