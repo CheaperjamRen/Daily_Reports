@@ -7,7 +7,7 @@
 - 每天 **北京时间 12:00**（UTC 04:00）自动运行，无需人工干预
 - 通过 GitHub Search API 爬取 AI / ML / 生成式 AI 等相关话题下 Stars 数超过 1000 的热门项目
 - 与前一日追踪数据对比，自动分类：**重大更新**、**小幅增长**、**全新项目**
-- 若配置了 OpenAI API Key，将对新项目和重大更新项目进行中文深度分析
+- 使用 **GitHub Copilot Free**（通过 GitHub Models API）对新项目和重大更新项目进行中文深度分析，**无需额外 API Key**
 - 日报以 Markdown 格式存储于 `reports/` 目录；追踪表格保存于 `data/tracked_repos.csv`
 
 ## 日报结构
@@ -26,15 +26,12 @@
 
 点击右上角 **Fork** 按钮，将本仓库 fork 到你的 GitHub 账户下。
 
-### 2. 配置 Secrets
+### 2. 确认已开启 GitHub Copilot Free
 
-前往 **Settings → Secrets and variables → Actions**，添加以下 Secret：
+深度分析功能由 **GitHub Models**（GitHub Copilot 内置的模型推理服务）驱动，使用的是 `gpt-4o-mini` 模型。
+工作流运行时自动获取的 `GITHUB_TOKEN` 即可调用该服务——**不需要任何额外的 API Key 或 Secret 配置**。
 
-| Secret 名称 | 是否必需 | 说明 |
-|-------------|---------|------|
-| `OPENAI_API_KEY` | 可选（推荐） | OpenAI API 密钥，用于生成中文深度分析报告。不配置时仅展示 README 摘要。 |
-
-> `GITHUB_TOKEN` 由 GitHub Actions 自动提供，无需手动配置。
+> 前提：仓库所有者账户已开启 [GitHub Copilot Free](https://github.com/features/copilot)（免费计划即可）。
 
 ### 3. 手动触发（可选）
 

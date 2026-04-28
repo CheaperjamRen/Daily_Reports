@@ -5,8 +5,11 @@ Daily GitHub AI Projects Report Generator
 
 Environment variables
 ---------------------
-GITHUB_TOKEN   – GitHub personal access token (auto-set by GitHub Actions)
-OPENAI_API_KEY – OpenAI API key for deep analysis (optional)
+GITHUB_TOKEN – GitHub token (auto-set by GitHub Actions).
+               Used for both the GitHub REST API and the GitHub Models inference
+               API (https://models.inference.ai.azure.com) that powers AI analysis.
+               No additional secrets are required when the repository owner has
+               GitHub Copilot Free or higher.
 """
 
 import base64
@@ -22,7 +25,6 @@ import requests
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 GITHUB_TOKEN: str = os.environ.get("GITHUB_TOKEN", "")
-OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
 
 # Minimum stars threshold for inclusion
 MIN_STARS = 1000
@@ -30,7 +32,7 @@ MIN_STARS = 1000
 # How many new repos to show in the report (sorted by stars desc)
 MAX_NEW_REPOS = 20
 
-# How many new repos / major-update repos to send to OpenAI for deep analysis
+# How many new repos / major-update repos to send to GitHub Copilot for deep analysis
 MAX_DEEP_ANALYSIS = 10
 
 # Seconds to sleep between consecutive GitHub API calls
@@ -120,19 +122,32 @@ def get_readme(owner: str, repo: str) -> str:
     return ""
 
 
-# ── OpenAI analysis ────────────────────────────────────────────────────────────
+# ── GitHub Models (Copilot) analysis ──────────────────────────────────────────
+
+# GitHub Models inference endpoint – OpenAI-compatible, authenticated with GITHUB_TOKEN.
+# Available to all accounts that have GitHub Copilot Free or higher.
+_MODELS_BASE_URL = "https://models.inference.ai.azure.com"
+_ANALYSIS_MODEL = "openai/gpt-4o-mini"
+
+# Rate-limit guard: GitHub Models free tier allows up to 15 req/min.
+_MODELS_CALL_DELAY = 5  # seconds between consecutive Copilot API calls
+
 
 def analyze_repo(readme: str, extra_prompt: str = "") -> Optional[str]:
     """
-    Send README text to OpenAI and return a Chinese analysis.
-    Returns None when OPENAI_API_KEY is not set or on any error.
+    Send README text to GitHub Models (Copilot) and return a Chinese analysis.
+    Returns None when GITHUB_TOKEN is not set or on any error.
     """
-    if not OPENAI_API_KEY:
+    if not GITHUB_TOKEN:
+        print("  GITHUB_TOKEN not set; skipping AI analysis.")
         return None
     try:
-        import openai  # type: ignore  # optional dependency
+        import openai  # type: ignore  # installed via requirements.txt
 
-        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        client = openai.OpenAI(
+            base_url=_MODELS_BASE_URL,
+            api_key=GITHUB_TOKEN,
+        )
         system_msg = (
             "你是一位专注于 AI 和软件项目的技术分析师。"
             "请用中文简洁地分析以下 GitHub 项目，内容不超过 300 字。"
@@ -143,18 +158,19 @@ def analyze_repo(readme: str, extra_prompt: str = "") -> Optional[str]:
             else f"README 内容（摘录）：\n{readme[:4000]}"
         )
         resp = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=_ANALYSIS_MODEL,
             messages=[
                 {"role": "system", "content": system_msg},
                 {"role": "user", "content": user_msg},
             ],
             max_tokens=600,
         )
+        time.sleep(_MODELS_CALL_DELAY)
         return resp.choices[0].message.content.strip()
     except ImportError:
         print("  openai package not available; skipping AI analysis.")
     except Exception as exc:
-        print(f"  OpenAI error: {exc}")
+        print(f"  GitHub Models error: {exc}")
     return None
 
 

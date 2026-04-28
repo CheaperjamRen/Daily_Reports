@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write           # required to commit and push the daily report
+  models: read              # required to call GitHub Models (Copilot) inference API
 
 jobs:
   generate-report:
@@ -28,7 +29,6 @@ jobs:
       - name: Generate daily AI report
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python scripts/fetch_repos.py
 
       - name: Commit and push report + tracking data
