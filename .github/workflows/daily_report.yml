@@ -38,6 +38,7 @@ jobs:
           git add data/ reports/
           if ! git diff --staged --quiet; then
             git commit -m "chore: daily AI report $(date -u +'%Y-%m-%d')"
+            git pull --rebase origin main
             git push
           else
             echo "Nothing new to commit."
