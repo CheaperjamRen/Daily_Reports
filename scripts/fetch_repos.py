@@ -142,12 +142,6 @@ def analyze_repo(readme: str, extra_prompt: str = "") -> Optional[str]:
         print("  GITHUB_TOKEN not set; skipping AI analysis.")
         return None
     try:
-        import openai  # type: ignore  # installed via requirements.txt
-
-        client = openai.OpenAI(
-            base_url=_MODELS_BASE_URL,
-            api_key=GITHUB_TOKEN,
-        )
         system_msg = (
             "你是一位专注于 AI 和软件项目的技术分析师。"
             "请用中文简洁地分析以下 GitHub 项目，内容不超过 300 字。"
@@ -157,18 +151,26 @@ def analyze_repo(readme: str, extra_prompt: str = "") -> Optional[str]:
             if extra_prompt
             else f"README 内容（摘录）：\n{readme[:4000]}"
         )
-        resp = client.chat.completions.create(
-            model=_ANALYSIS_MODEL,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_msg},
-            ],
-            max_tokens=600,
+        resp = requests.post(
+            f"{_MODELS_BASE_URL}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": _ANALYSIS_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+                "max_tokens": 600,
+            },
+            timeout=60,
         )
         time.sleep(_MODELS_CALL_DELAY)
-        return resp.choices[0].message.content.strip()
-    except ImportError:
-        print("  openai package not available; skipping AI analysis.")
+        if resp.status_code == 200:
+            return resp.json()["choices"][0]["message"]["content"].strip()
+        print(f"  GitHub Models error: {resp.status_code} - {resp.text}")
     except Exception as exc:
         print(f"  GitHub Models error: {exc}")
     return None
