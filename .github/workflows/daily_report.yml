@@ -1,0 +1,44 @@
+name: Daily AI Projects Report
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # UTC 04:00 = CST (UTC+8) 12:00
+  workflow_dispatch:        # allow manual triggers from the Actions tab
+
+permissions:
+  contents: write           # required to commit and push the daily report
+  models: read              # required to call GitHub Models (Copilot) inference API
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Generate daily AI report
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/fetch_repos.py
+
+      - name: Commit and push report + tracking data
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add data/ reports/
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: daily AI report $(date -u +'%Y-%m-%d')"
+            git push
+          else
+            echo "Nothing new to commit."
+          fi
